@@ -7,8 +7,11 @@ import sys
 
 from datetime import datetime
 from logging.handlers import SocketHandler
+
 from twisted.internet import reactor
 import requests
+from kafka import KafkaProducer, KafkaClient
+from twisted.names.root import bootstrap
 
 from opencanary.iphelper import check_ip
 
@@ -227,6 +230,32 @@ class SocketJSONHandler(SocketHandler):
 
     def makePickle(self, record):
         return record.getMessage() + "\n"
+
+
+class KafkaHandler(logging.Handler):
+
+    def __init__(self, host, port, topic):
+        logging.Handler.__init__(self)
+        _acks = '1'
+        self.kafka_brokers = [
+            f"{host}:{port}",
+        ]
+        self.topic = topic
+        self.producer = KafkaProducer(
+            bootstrap_servers=self.kafka_brokers,
+            value_serializer=lambda m: json.dumps(m).encode('utf-8'),
+            acks=int(_acks) if _acks.isdigit() else _acks,
+        )
+
+    def emit(self, record):
+        if record.name == 'kafka':
+            return
+        msg = self.format(record)
+        self.producer.send(self.topic, msg).get(timeout=10)
+
+    def close(self):
+        self.producer.flush()
+        self.producer.close()
 
 
 class HpfeedsHandler(logging.Handler):
