@@ -243,7 +243,7 @@ class KafkaHandler(logging.Handler):
         self.topic = topic
         self.producer = KafkaProducer(
             bootstrap_servers=self.kafka_brokers,
-            value_serializer=lambda m: json.dumps(m).encode('utf-8'),
+            # value_serializer=lambda m: json.dumps(m).encode('utf-8'),
             acks=int(_acks) if _acks.isdigit() else _acks,
         )
 
@@ -252,7 +252,10 @@ class KafkaHandler(logging.Handler):
             return
         # msg = self.format(record)
         # self.producer.send(self.topic, msg).get(timeout=10)
-        self.producer.send(self.topic, self.generate_msg(record)).get(timeout=10)
+
+        # self.producer.send(self.topic, self.generate_msg(record)).get(timeout=10)
+
+        self.producer.send(self.topic, record.msg).get(timeout=10)
 
     def generate_msg(self, alert):
         msg = {}
