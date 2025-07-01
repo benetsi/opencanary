@@ -250,9 +250,20 @@ class KafkaHandler(logging.Handler):
     def emit(self, record):
         if record.name == 'kafka':
             return
-        msg = self.format(record)
-        self.producer.send(self.topic, msg).get(timeout=10)
-        # self.producer.send(self.topic, record).get(timeout=10)
+        # msg = self.format(record)
+        # self.producer.send(self.topic, msg).get(timeout=10)
+        self.producer.send(self.topic, self.generate_msg(record)).get(timeout=10)
+
+    def generate_msg(self, alert):
+        msg = {}
+        msg["pretext"] = "OpenCanary Alert"
+        data = json.loads(alert.msg)
+        msg["fields"] = []
+        for k, v in data.items():
+            msg["fields"].append(
+                {"title": k, "value": v}
+            )
+        return msg
 
     def close(self):
         self.producer.flush()
