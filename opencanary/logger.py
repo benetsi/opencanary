@@ -250,7 +250,10 @@ class KafkaHandler(logging.Handler):
     def emit(self, record):
         if record.name == 'kafka':
             return
-        self.producer.send(self.topic, json.loads(record.msg)).get(timeout=10)
+        msg = json.loads(record.msg)
+        dt = datetime.strptime(msg['local_time'], "%Y-%m-%d %H:%M:%S.%f")
+        msg['time'] = dt.isoformat()
+        self.producer.send(self.topic, msg).get(timeout=10)
 
     def close(self):
         self.producer.flush()
